@@ -1,40 +1,114 @@
-import React, { useEffect, useRef } from "react";
+/**
+ * Modal.tsx — Einfacher modaler Dialog mit Overlay
+ *
+ * Zweck
+ * -----
+ * - Zeigt ein modales Dialogfenster mit Titel, Inhalt und Schließen-Button
+ * - Unterstützt Varianten ("info" | "success" | "error") über Farbmarkierung
+ * - Schließt bei ESC-Taste und Klick auf den Hintergrund (Backdrop)
+ *
+ * Props
+ * -----
+ * - open: boolean            — steuert Sichtbarkeit
+ * - title?: string           — Überschrift (Default: "Hinweis")
+ * - children?: ReactNode     — Dialoginhalt
+ * - onClose: () => void      — Schließen-Handler
+ * - variant?: "info" | "success" | "error" (Default: "info")
+ *
+ * A11y
+ * ----
+ * - role="dialog", aria-modal="true"
+ * - Tastatur: ESC schließt
+ * - Optionales Scroll-Locking bei geöffnetem Dialog
+ */
+
+import React, { useEffect, useMemo, useRef } from "react";
+
+// -----------------------------------------------------------------------------
+// Typen
+// -----------------------------------------------------------------------------
+type Variant = "info" | "success" | "error";
 
 type Props = {
   open: boolean;
   title?: string;
   children?: React.ReactNode;
   onClose: () => void;
-  variant?: "info" | "success" | "error";
+  variant?: Variant;
 };
 
-export default function Modal({ open, title = "Hinweis", children, onClose, variant = "info" }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
+// -----------------------------------------------------------------------------
+// Komponente
+// -----------------------------------------------------------------------------
+export default function Modal({
+  open,
+  title = "Hinweis",
+  children,
+  onClose,
+  variant = "info",
+}: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = "modal-title";
 
+  // ESC zum Schließen
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  // Optional: Scroll-Lock für Body, solange das Modal offen ist
+  useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
 
-  const bar =
-    variant === "success" ? "bg-emerald-500" :
-    variant === "error" ? "bg-red-500" : "bg-blue-500";
+  // Farbbalken nach Variante
+  const barClass = useMemo(() => {
+    switch (variant) {
+      case "success":
+        return "bg-emerald-500";
+      case "error":
+        return "bg-red-500";
+      default:
+        return "bg-blue-500";
+    }
+  }, [variant]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
-      {/* dialog */}
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Dialog */}
       <div className="absolute inset-0 flex items-center justify-center px-4">
-        <div ref={ref} role="dialog" aria-modal="true"
-             className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
-          <div className={`${bar} h-1 w-full`} />
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden"
+          // Klicks im Dialog sollen NICHT das Modal schließen
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className={`${barClass} h-1 w-full`} />
           <div className="p-5">
-            <div className="text-lg font-semibold">{title}</div>
+            <div id={titleId} className="text-lg font-semibold">
+              {title}
+            </div>
             <div className="mt-2 text-sm text-slate-700">{children}</div>
             <div className="mt-4 text-right">
               <button
