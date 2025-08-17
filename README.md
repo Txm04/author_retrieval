@@ -67,6 +67,7 @@ EMBED_DEVICE=cpu
 SHOW_SCORES=false
 SCORE_MODE=cosine
 VECTOR_DIM=384
+LOG_LEVEL=INFO
 ```
 
 > `EMBED_DEVICE` kann `cpu`, `cuda` oder `mps` sein – abhängig von deiner Hardware.
@@ -92,9 +93,10 @@ Frontend: [http://localhost:8080](http://localhost:8080)
 4. **Import** – JSON-Datei im unterstützten Format hochladen
 5. **Reindex** – FAISS-Indizes neu erstellen
 6. **Reset** – Datenbank leeren & Schema neu anlegen
+7. **Log-Level** - Log-Level verändern
 
 ### Suche
-- Suche nach Abstracts oder Autoren basierend auf semantischer Ähnlichkeit.
+- Suche nach Abstracts oder Autoren basierend auf semantischer Ähnlichkeit. Filterung nach Topic möglich.
 
 ---
 
@@ -124,7 +126,7 @@ faiss.omp_set_num_threads(1)
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
 ### Frontend lokal starten
@@ -235,7 +237,7 @@ Für Tests/PoCs kannst du auch ohne vorab vergebene IDs importieren. In dem Fall
 - **Lokal (ohne Docker):** Du kannst im Admin-Dashboard auf **CUDA** (NVIDIA) oder **MPS** (Apple Silicon) umstellen, sofern verfügbar.
 - **Docker-Einschränkungen:**
   - **MPS** wird **nicht** an Container durchgereicht.
-  - **CUDA** erfordert das NVIDIA Container Toolkit und Start mit `--gpus all`; diese Konfiguration wurde **nicht getestet**.
+  - **CUDA** erfordert das NVIDIA Container Toolkit; diese Konfiguration wurde bisher **nicht implementiert**.
 
 
 ## 📄 Lizenz
