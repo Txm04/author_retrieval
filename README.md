@@ -32,6 +32,51 @@ Es kombiniert einen **FastAPI**-basierten Backend-Service, ein **React**-Fronten
 
 ---
 
+## 🏠 Gesamtsystem
+
+```mermaid
+flowchart LR
+  U[Benutzer<br/>Browser]:::ext
+
+  subgraph FE[React Frontend]
+    FE_UI["Such-UI<br/>Admin-Dashboard"]
+    FE_State["State Mgmt &amp;<br/>API-Client"]
+  end
+
+  subgraph BE[FastAPI Backend]
+    API["REST API<br/>(/api/…)"]
+    subgraph SVC[Services]
+      S_IMPORT["Import-Service"]
+      S_SEARCH["Search-Service"]
+      S_ADMIN["Admin-/Config-Service"]
+    end
+    subgraph CORE[Core]
+      EMB["Embeddings Encoder<br/>Sentence-Transformers"]
+      IDX["FAISS Index"]
+      ORM["SQLModel/SQLAlchemy"]
+      CFG["Config (ENV)"]
+    end
+  end
+
+  DB["PostgreSQL"]
+  VOL["Dateispeicher<br/>/ Index-Dateien"]
+
+  U --> FE
+  FE_UI --> FE_State
+  FE_State -->|HTTP/JSON| API
+  API --> SVC
+  SVC --> ORM
+  SVC --> EMB
+  SVC --> IDX
+  ORM <-->|SQL| DB
+  IDX --- VOL
+  EMB -->|Modell-Laden| VOL
+
+  classDef ext fill:#eee,stroke:#999,color:#333
+```
+
+---
+
 ## 🚀 Funktionen
 
 - **Import** von Abstract-Daten im JSON-Format
@@ -239,6 +284,45 @@ Für Tests/PoCs kannst du auch ohne vorab vergebene IDs importieren. In dem Fall
   - **MPS** wird **nicht** an Container durchgereicht.
   - **CUDA** erfordert das NVIDIA Container Toolkit; diese Konfiguration wurde bisher **nicht implementiert**.
 
+---
+
+## ☁️ Deployment / Infrastruktur
+
+### Docker-Compose
+
+```mermaid
+flowchart TB
+  subgraph host["Docker Host / Cloud VM"]
+    subgraph net["Docker network: author_net"]
+      FE_C["Container: fe"]:::svc
+      API_C["Container: api"]:::svc
+      DB_C["Container: postgres"]:::db
+    end
+
+    VOL_IDX["Volume: faiss_index"]:::vol
+    VOL_DB["Volume: pg_data"]:::vol
+  end
+
+  U["Browser"] -->|"443/80"| FE_C
+  FE_C -->|"HTTP :8000"| API_C
+  API_C -->|"TCP :5432"| DB_C
+  API_C --- VOL_IDX
+  DB_C --- VOL_DB
+
+  classDef svc fill:#eef,stroke:#446,stroke-width:1px;
+  classDef db fill:#efe,stroke:#464,stroke-width:1px;
+  classDef vol fill:#f8f8f8,stroke:#aaa,stroke-dasharray:3 3;
+```
+
+**Interpretation:**  
+- `fe`: React-Frontend (Port 8080 → Browser).  
+- `api`: FastAPI-Backend (Port 8000).  
+- `postgres`: persistente DB.  
+- `faiss_index` & `pg_data`: Volumes für Index- und DB-Daten.  
+
+Alle Container sind im Compose-Netzwerk `author_net` verbunden.
+
+---
 
 ## 📄 Lizenz
 MIT License
